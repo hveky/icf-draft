@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICF 修订记录生成器</title>
+  <style>
+    :root {
+      --bg: #f3efe8;
+      --panel: rgba(253, 250, 244, 0.78);
+      --panel-strong: rgba(255, 252, 247, 0.94);
+      --ink: #16110d;
+      --muted: #645749;
+      --line: rgba(22, 17, 13, 0.12);
+      --accent: #a54f2d;
+      --accent-deep: #6c2f19;
+      --accent-soft: #f1d1bf;
+      --success: #275d3a;
+      --success-bg: rgba(228, 243, 233, 0.9);
+      --error: #a2352b;
+      --error-bg: rgba(250, 234, 229, 0.92);
+      --shadow: 0 24px 80px rgba(34, 25, 18, 0.14);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(165, 79, 45, 0.18), transparent 24%),
+        radial-gradient(circle at 86% 12%, rgba(226, 192, 164, 0.42), transparent 26%),
+        linear-gradient(135deg, #f7f2ea 0%, #ece4d7 52%, #ebe3d7 100%);
+      padding: 28px;
+    }
+
+    .page {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      gap: 24px;
+    }
+
+    .frame {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+      gap: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero {
+      position: relative;
+      padding: 48px;
+      background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.1)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 29px,
+          rgba(22, 17, 13, 0.04) 29px,
+          rgba(22, 17, 13, 0.04) 30px
+        );
+      border-right: 1px solid var(--line);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 22px 24px auto auto;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(165, 79, 45, 0.18), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(22, 17, 13, 0.14);
+      background: rgba(255, 255, 255, 0.52);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 22px 0 16px;
+      max-width: 9ch;
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: clamp(42px, 5vw, 74px);
+      line-height: 0.94;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+    }
+
+    .lead {
+      max-width: 38rem;
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.85;
+      color: var(--muted);
+    }
+
+    .hero-grid {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .hero-card,
+    .metric,
+    .status-card,
+    .preview,
+    .log-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    .hero-card {
+      padding: 18px;
+      min-height: 132px;
+    }
+
+    .hero-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .panel {
+      padding: 28px;
+      display: grid;
+      gap: 18px;
+      background: var(--panel-strong);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .panel-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 16px 18px;
+    }
+
+    .metric-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      display: block;
+      margin-top: 10px;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field span {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .input,
+    .file-shell {
+      width: 100%;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(22, 17, 13, 0.16);
+      background: rgba(255, 255, 255, 0.94);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .input {
+      padding: 15px 16px;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .input:focus,
+    .file-shell:focus-within {
+      outline: none;
+      border-color: rgba(165, 79, 45, 0.44);
+      box-shadow: 0 0 0 4px rgba(241, 209, 191, 0.8);
+      transform: translateY(-1px);
+    }
+
+    .file-shell {
+      position: relative;
+      padding: 18px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      overflow: hidden;
+    }
+
+    .file-shell input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    .file-copy strong {
+      font-size: 15px;
+    }
+
+    .file-copy small {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .file-pill,
+    .ghost-link,
+    .primary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+
+    .file-pill {
+      border: 1px solid rgba(22, 17, 13, 0.12);
+      background: rgba(241, 209, 191, 0.34);
+      color: var(--accent-deep);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 6px;
+    }
+
+    .primary-button {
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      color: #fff9f3;
+      box-shadow: 0 14px 28px rgba(108, 47, 25, 0.22);
+    }
+
+    .ghost-link {
+      border: 1px solid rgba(22, 17, 13, 0.14);
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .status-card {
+      padding: 18px 20px;
+    }
+
+    .status-card.success {
+      background: var(--success-bg);
+      border-color: rgba(39, 93, 58, 0.22);
+    }
+
+    .status-card.error {
+      background: var(--error-bg);
+      border-color: rgba(162, 53, 43, 0.18);
+    }
+
+    .status-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .status-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .preview {
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .preview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .preview-head strong {
+      font-size: 15px;
+    }
+
+    .preview-head span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .preview-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview-item {
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(248, 242, 233, 0.86);
+      border: 1px solid rgba(22, 17, 13, 0.08);
+    }
+
+    .preview-item strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .preview-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(22, 17, 13, 0.06);
+    }
+
+    .log-card {
+      overflow: hidden;
+    }
+
+    .log-card strong {
+      display: block;
+      padding: 16px 18px 0;
+      font-size: 15px;
+    }
+
+    .log {
+      min-height: 160px;
+      margin: 12px 18px 18px;
+      padding: 16px;
+      border-radius: 14px;
+      background: #1a1511;
+      color: #f4e7d7;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 13px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      overflow: auto;
+    }
+
+    .log-empty {
+      color: rgba(244, 231, 215, 0.62);
+    }
+
+    @media (max-width: 1100px) {
+      .frame {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 18px;
+      }
+
+      .hero,
+      .panel {
+        padding: 22px;
+      }
+
+      .hero-grid,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .actions,
+      .panel-head,
+      .preview-head {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .primary-button,
+      .ghost-link {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="frame">
+      <section class="hero">
+        <span class="eyebrow">ICF Gold Standard</span>
+        <h1>ICF 交付验证工作台</h1>
+        <p class="lead">
+          上传带修订痕迹的 ICF Word 文档后，系统会在标准模板上生成修订记录，并把验收文件作为离线金标准执行严格交付校验。
+          `draft` 只产出草稿，`release` 只有在模板完整性和验收一致性同时通过时，才会标记为正式交付。
+        </p>
+
+        <div class="hero-grid">
+          <article class="hero-card">
+            <strong>金标准校验</strong>
+            <span>正式交付不再依赖 alignment 分数达标，而是要求生成结果与验收文件达到可交付级一致。</span>
+          </article>
+          <article class="hero-card">
+            <strong>双模式运行</strong>
+            <span>`draft` 适合草稿预览；`release` 必须带验收文件，并输出交付差异报告和阻断项。</span>
+          </article>
+          <article class="hero-card">
+            <strong>结果透明</strong>
+            <span>页面会显示交付状态、阻断项数量、差异报告路径和结果预览，方便快速定位是否可正式交付。</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>生成工作台</h2>
+            <p>建议在 `release` 模式下明确填写验收文件路径；若留空，页面只会在能自动定位到配对验收文件时继续执行。</p>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <article class="metric">
+            <span class="metric-label">状态</span>
+            <span class="metric-value">
+              {% if status == "success" %}已完成{% elif status == "error" %}失败{% else %}待执行{% endif %}
+            </span>
+          </article>
+          <article class="metric">
+            <span class="metric-label">运行模式</span>
+            <span class="metric-value">{{ mode }}</span>
+          </article>
+          <article class="metric">
+            <span class="metric-label">修订条数</span>
+            <span class="metric-value">{{ row_count }}</span>
+          </article>
+          <article class="metric">
+            <span class="metric-label">结构校验</span>
+            <span class="metric-value">{{ integrity_verdict }}</span>
+          </article>
+          <article class="metric">
+            <span class="metric-label">交付状态</span>
+            <span class="metric-value">{{ delivery_status }}</span>
+          </article>
+        </div>
+
+        <form action="/generate" method="post" enctype="multipart/form-data">
+          <label class="field">
+            <span>ICF 文件</span>
+            <div class="file-shell">
+              <input type="file" name="source_file" accept=".docx" required>
+              <div class="file-copy">
+                <strong id="file-name">选择待处理的 Word 文档</strong>
+                <small id="file-hint">支持 `.docx`，建议直接使用带修订记录的原始文件</small>
+              </div>
+              <span class="file-pill">上传</span>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>模板路径</span>
+            <input class="input" type="text" name="template_path" value="{{ template_path }}" required>
+          </label>
+
+          <label class="field">
+            <span>验收文件路径</span>
+            <input class="input" type="text" name="acceptance_path" value="{{ acceptance_path }}" placeholder="可留空；release 模式下建议显式填写">
+          </label>
+
+          <label class="field">
+            <span>运行模式</span>
+            <select class="input" name="mode">
+              <option value="release" {% if mode == "release" %}selected{% endif %}>release</option>
+              <option value="draft" {% if mode == "draft" %}selected{% endif %}>draft</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>输出路径</span>
+            <input class="input" type="text" name="output_path" value="{{ output_path }}" placeholder="F:\CRA-building\output\sample-mvp.docx" required>
+          </label>
+
+          <div class="actions">
+            <button class="primary-button" type="submit">生成修订记录</button>
+            {% if result_exists %}
+            <a class="ghost-link" href="/download?path={{ output_path | urlencode }}">下载结果</a>
+            {% endif %}
+          </div>
+        </form>
+
+        {% if status == "success" %}
+        <section class="status-card success">
+          <strong>执行完成</strong>
+          <p>结果已写入指定路径。当前输出共包含 {{ row_count }} 条修订记录，可继续下载或复核。</p>
+          <p>结构校验：{{ integrity_verdict }}。报告文件：{{ report_path or "未提供" }}。</p>
+          <p>交付状态：{{ delivery_status }}。正式交付判定：{% if delivery_passed %}通过{% else %}未通过{% endif %}。</p>
+          <p>交付差异报告：{{ acceptance_diff_path or "未提供" }}。复盘文件：{{ progress_path or "未提供" }}。</p>
+          <p>阻断项数量：{{ blocking_issue_count }}</p>
+        </section>
+        {% elif status == "error" %}
+        <section class="status-card error">
+          <strong>执行失败</strong>
+          <p>{{ error_message }}</p>
+        </section>
+        {% endif %}
+
+        <section class="preview">
+          <div class="preview-head">
+            <strong>结果预览</strong>
+            <span>{% if preview_rows %}显示前 {{ preview_rows|length }} 条{% else %}等待生成{% endif %}</span>
+          </div>
+          <div class="preview-list">
+            {% if preview_rows %}
+              {% for row in preview_rows %}
+              <article class="preview-item">
+                <strong>{{ row.topic }}</strong>
+                <div class="preview-meta">
+                  <span class="chip">{{ row.section_page }}</span>
+                  <span class="chip">{{ row.reason }}</span>
+                </div>
+              </article>
+              {% endfor %}
+            {% else %}
+              <article class="preview-item">
+                <strong>尚未生成结果</strong>
+                <div class="preview-meta">
+                  <span class="chip">执行后，这里会显示修订主题和定位摘要</span>
+                </div>
+              </article>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="log-card">
+          <strong>执行日志</strong>
+          <div class="log">{% if log_lines %}{% for line in log_lines %}{{ line }}
+{% endfor %}{% else %}<span class="log-empty">执行开始后，这里会显示输入、模板、验收文件、交付状态和结果摘要。</span>{% endif %}</div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const fileInput = document.querySelector('input[name="source_file"]');
+    const outputInput = document.querySelector('input[name="output_path"]');
+    const fileName = document.getElementById("file-name");
+    const fileHint = document.getElementById("file-hint");
+
+    fileInput?.addEventListener("change", () => {
+      const file = fileInput.files?.[0];
+      if (!file) {
+        fileName.textContent = "选择待处理的 Word 文档";
+        fileHint.textContent = "支持 .docx，建议直接使用带修订记录的原始文件";
+        return;
+      }
+
+      fileName.textContent = file.name;
+      fileHint.textContent = `${(file.size / 1024).toFixed(1)} KB · 已准备生成`;
+
+      if (!outputInput.value.trim()) {
+        const stem = file.name.replace(/\.docx$/i, "");
+        outputInput.value = `F:\\CRA-building\\output\\${stem}-mvp-output.docx`;
+      }
+    });
+  </script>
+</body>
+</html>

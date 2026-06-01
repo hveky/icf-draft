@@ -1,0 +1,16 @@
+[project]
+name = "icf-parser"
+version = "0.1.0"
+description = "ICF amendment history generator"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.136.0",
+    "jinja2>=3.1.6",
+    "lxml>=6.1.0",
+    "python-docx>=1.2.0",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.38.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "--basetemp=./.pytest_tmp"
